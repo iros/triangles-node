@@ -1,5 +1,4 @@
-(function(){
-
+(function(Q, d3, _, Utils){
 
   // var colors = [
   //   "#67889e", "#39425a", "#4b2728",
@@ -7,11 +6,9 @@
   //   "#d7ca20"
   // ];
 
-  var colors = d3.scale.category20b().range();
-
   // var colors = ["red", "yellow", "blue"]
 
-  var Triangles = function(element, width, height, options) {
+  var Triangles = function(paper, width, height, options) {
     
     options = options || {};
 
@@ -19,6 +16,9 @@
     this.width = width;
     this.height = height;
     this.center = { x : this.width / 2, y : this.height / 2 };
+    this.colors = options.colors ?
+      options.colors :
+      d3.scale.category20b().range();
 
     this._triangles = [];
     this._lines = [];
@@ -26,7 +26,7 @@
     this._paintingTimeouts = [];
     this._clearingTimeout = null;
 
-    this.paper = new Raphael(element, width, height);
+    this.paper = paper;
 
     this._sides = ["N","W","E","S"];
 
@@ -53,24 +53,20 @@
     });
 
     this.scale.range([
-      colors[Math.floor(Math.random() * colors.length)],
-      colors[Math.floor(Math.random() * colors.length)]
+      this.colors[Math.floor(Math.random() * this.colors.length)],
+      this.colors[Math.floor(Math.random() * this.colors.length)]
     ]);
   };
 
-  Triangles.prototype.paint = function(center) {
+  Triangles.prototype.paint = function(center, def) {
     center = center || {
       x : this.width / 2, y : this.height / 2
     };
 
-    this.paintTriangle(center);
+    this.paintTriangle(center, null, def);
   };
 
-  window.randomBetween = function(lower,upper) {
-    return (Math.random() * (upper - lower)) + lower;
-  }
-
-  Triangles.prototype.paintTriangle = function(center, previousCenter) {
+  Triangles.prototype.paintTriangle = function(center, previousCenter, def) {
     var self = this;
 
     self.delay = self.delay * self.easing;
@@ -83,22 +79,20 @@
 
     self._paintingTimeout = setTimeout(function() {
       var bounds = {
-        x : Math.max(0,center.x  - randomBetween(self.minSide, self.maxSide)),
-        y : Math.max(0,center.y  - randomBetween(self.minSide, self.maxSide)),
-        x2 : Math.max(0,center.x + randomBetween(self.minSide, self.maxSide)),
-        y2 : Math.max(0,center.y + randomBetween(self.minSide, self.maxSide))
+        x : Math.max(0,center.x  - Utils.randomBetween(self.minSide, self.maxSide)),
+        y : Math.max(0,center.y  - Utils.randomBetween(self.minSide, self.maxSide)),
+        x2 : Math.max(0,center.x + Utils.randomBetween(self.minSide, self.maxSide)),
+        y2 : Math.max(0,center.y + Utils.randomBetween(self.minSide, self.maxSide))
       };
       
-      //var colorIndex = Math.round(Math.random() * (colors.length - 1));
-      var colorIndex = Math.floor(Math.random() * 10);
+      var colorIndex = Math.floor(Math.random() * self.colors.length);
       var points = self._makeTriangle(bounds);
 
       var triangle = self.paper.path(
         self._pathifyTriangle(points)
       ).attr({
-        //fill : colors[colorIndex],
         fill: self.scale(colorIndex),
-        opacity: randomBetween(self.minOpacity, self.maxOpacity),
+        opacity: Utils.randomBetween(self.minOpacity, self.maxOpacity),
         //opacity: 0, <- no triangles!
         stroke: "none"
       });
@@ -120,17 +114,18 @@
 
       if (self._triangles.length > self.num) {
         self.stopPainting();
-        //setTimeout(_.bind(self.clearCanvas, self), 5000);
+        if (def) def.resolve("hi");
       } else {
         // center
-        var c = points[Math.floor(randomBetween(0,3))];
+        var c = points[Math.floor(Utils.randomBetween(0,3))];
         // distancefrom
-        var t = [1,-1][_.random()];
+        
+        var t = [1,-1][_.random(0,1)];
+
         c.x = Math.max(0, Math.min(self.width, c.x + t * self.distanceFromCenter));
         c.y = Math.max(0,Math.min(self.height, c.y + t * self.distanceFromCenter));
 
-
-        self.paintTriangle(c, center);
+        self.paintTriangle(c, center, def);
       }
     }, self.delay);
 
@@ -191,7 +186,7 @@
     return this;
   };
 
-  Triangles.prototype.clearCanvas = function() {
+  Triangles.prototype.clearCanvas = function(def) {
     var self = this;
 
     var total = self._triangles.length,
@@ -225,7 +220,7 @@
 
             if (processed + 1 >= total) {
               clearTimeout(self._clearingTimeout);
-              self.paintTriangle(self.center);
+              self.paintTriangle(self.center, null, def);
               self._triangles = _.compact(self._triangles);
             }
           });
@@ -236,13 +231,13 @@
           if (processed+1 >= total) {
             self.paper.clear();
             clearTimeout(self._clearingTimeout);
-            self.paintTriangle(self.center);
+            self.paintTriangle(self.center, null, def);
             self._triangles = _.compact(self._triangles);
             self._lines = _.compact(self._lines);
           }
         }
         clearTriangle(i+1);
-      }, 50);
+      }, self.delay / 20);
     }
 
     clearTriangle(0);
@@ -253,6 +248,7 @@
     var sides = ["N","W","E","S"];
 
     return function(bounds) {
+
       // we need to pick three points. To do that, 
       // we're going to pick 3 out of the four sides.
       var s = [], side;
@@ -307,5 +303,12 @@
     };
   }();
 
-  window.Triangles = Triangles;
-}());
+  if (typeof module !== "undefined") {
+    module.exports = Triangles;
+  } else {
+    window.Triangles = Triangles;
+  }
+}(typeof window !== "undefined" ? window.Q : require('q'),
+  typeof window !== "undefined" ? window.d3 : require('d3'),
+  typeof window !== "undefined" ? window._ : require('underscore'),
+  typeof window !== "undefined" ? window.Utils : require('./utils')));

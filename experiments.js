@@ -13,11 +13,11 @@
   };
 
   var options = {
-    num: randomBetween(5,25),
+    num: Utils.randomBetween(5,25),
     easing: 0.9,
     delay: 1000,
-    maxSide: Math.floor(randomBetween(30,160)),
-    minSide: Math.floor(randomBetween(5,10)),
+    maxSide: Math.floor(Utils.randomBetween(30,160)),
+    minSide: Math.floor(Utils.randomBetween(5,10)),
     minOpacity: 0.1,
     maxOpacity: 0.4,
     lines: true,
@@ -48,7 +48,7 @@
       for(var j = 0; j < Math.floor(display.rows); j++) {
         var d = $("<div>").addClass("col").appendTo(row);
         var triangles = new Triangles(
-          d[0],
+          new Raphael(d[0], display.width, display.height),
           display.width,
           display.height,
           options

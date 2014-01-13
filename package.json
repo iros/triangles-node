@@ -1,0 +1,12 @@
+{
+  "name": "triangles",
+  "authors": "irene Ros",
+  "devDependencies": {
+    "d3": "*",
+    "underscore": "~1.5.2",
+    "svg2png": "~1.0.0",
+    "jsdom": "~0.8.10",
+    "jquery": "~2.1.0-beta3",
+    "q": "~1.0.0"
+  }
+}
