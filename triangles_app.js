@@ -69,7 +69,6 @@ while (generated <  config.howmany) {
       config.height,
       options);
 
-
     var getPainting = Q.defer();
     triangles.paint(null, getPainting);
     getPainting.promise.then(function() {
